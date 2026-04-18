@@ -17,7 +17,20 @@ jobs:
       - name: Install deps
         run: pip install mediapipe opencv-python pyautogui numpy Pillow pycaw comtypes screen-brightness-control pyinstaller
       - name: Build Niyanta.exe
-        run: pyinstaller --onefile --noconsole --name "Niyanta" --collect-all mediapipe --add-data "hand_landmarker.task;." main.py
+        run: >
+          pyinstaller --onefile --noconsole
+          --name "Niyanta"
+          --collect-all mediapipe
+          --hidden-import pycaw
+          --hidden-import pycaw.pycaw
+          --hidden-import comtypes
+          --hidden-import comtypes.client
+          --hidden-import comtypes.server
+          --hidden-import comtypes.GUID
+          --hidden-import win32api
+          --hidden-import win32con
+          --add-data "hand_landmarker.task;."
+          main.py
       - uses: actions/upload-artifact@v4
         with:
           name: Windows-Niyanta
@@ -33,7 +46,12 @@ jobs:
       - name: Install deps
         run: pip install mediapipe opencv-python pyautogui numpy Pillow screen-brightness-control pyinstaller
       - name: Build Niyanta
-        run: pyinstaller --onefile --noconsole --name "Niyanta" --collect-all mediapipe --add-data "hand_landmarker.task:." main.py
+        run: >
+          pyinstaller --onefile --noconsole
+          --name "Niyanta"
+          --collect-all mediapipe
+          --add-data "hand_landmarker.task:."
+          main.py
       - uses: actions/upload-artifact@v4
         with:
           name: macOS-Niyanta
@@ -51,7 +69,12 @@ jobs:
       - name: Install deps
         run: pip install mediapipe opencv-python pyautogui numpy Pillow screen-brightness-control pyinstaller
       - name: Build Niyanta
-        run: pyinstaller --onefile --name "Niyanta" --collect-all mediapipe --add-data "hand_landmarker.task:." main.py
+        run: >
+          pyinstaller --onefile
+          --name "Niyanta"
+          --collect-all mediapipe
+          --add-data "hand_landmarker.task:."
+          main.py
       - uses: actions/upload-artifact@v4
         with:
           name: Linux-Niyanta
