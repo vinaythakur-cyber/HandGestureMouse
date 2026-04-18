@@ -3,8 +3,11 @@
 # =============================================================================
 
 import cv2
+import sys
+import os
 import platform
 import subprocess
+import tempfile
 import numpy as np
 import pyautogui
 import config
@@ -19,7 +22,14 @@ _vol_obj = None
 
 if OS == "Windows":
     try:
-        # comtypes must be initialised before pycaw on frozen exe
+        # ── CRITICAL FIX for frozen .exe ──────────────────────────────────────
+        # comtypes generates .py cache files at runtime.
+        # In a frozen exe it tries to write them next to Niyanta.exe and FAILS.
+        # Force it to use the system temp folder instead.
+        import tempfile
+        os.environ['COMTYPES_CACHE_DIR'] = tempfile.gettempdir()
+
+        # comtypes must be explicitly initialised in a frozen exe
         import comtypes
         comtypes.CoInitialize()
 
@@ -33,8 +43,7 @@ if OS == "Windows":
         _vol_obj   = cast(_interface, POINTER(IAudioEndpointVolume))
         VOL_MIN, VOL_MAX = _vol_obj.GetVolumeRange()[:2]
         VOLUME_ENABLED   = True
-        print("[Niyanta] Volume: Windows Audio API ready")
-        print(f"[Niyanta] Vol range: {VOL_MIN:.1f} dB to {VOL_MAX:.1f} dB")
+        print(f"[Niyanta] Volume OK  range={VOL_MIN:.1f} to {VOL_MAX:.1f} dB")
 
     except Exception as e:
         print(f"[Niyanta] Volume FAILED: {type(e).__name__}: {e}")
@@ -49,7 +58,7 @@ elif OS == "Darwin":
     except Exception as e:
         print(f"[Niyanta] Volume FAILED: {e}")
 
-else:  # Linux
+else:
     try:
         subprocess.run(["amixer", "sset", "Master", "50%"],
                        capture_output=True, check=True)
@@ -84,7 +93,7 @@ try:
         BRIGHTNESS_ENABLED = True
         print("[Niyanta] Brightness: ready")
 except Exception as e:
-    print(f"[Niyanta] Brightness FAILED: {e}")
+    print(f"[Niyanta] Brightness unavailable: {e}")
 
 
 # ── Cursor state ───────────────────────────────────────────────────────────────
@@ -200,9 +209,7 @@ def reset_clicks():
 
 
 # =============================================================================
-#  VOLUME
-#  dist(4,8) = thumb tip to index tip
-#  range [20, 250] px → 0 to 100%
+#  VOLUME  —  dist(thumb=4, index=8), range [20,250] → 0-100%
 # =============================================================================
 _vol_bar = 400
 _vol_pct = 0
@@ -223,7 +230,6 @@ def do_volume(hand_data, frame):
     cv2.line(frame, (tx, ty), (ix, iy), (0, 200, 255), 3)
     cv2.circle(frame, (tx, ty), 10, (255, 100, 0), cv2.FILLED)
     cv2.circle(frame, (ix, iy), 10, (0,   0, 255), cv2.FILLED)
-
     cv2.putText(frame, "VOLUME", (10, 90),
                 cv2.FONT_HERSHEY_PLAIN, 2, (0, 200, 255), 2)
     cv2.rectangle(frame, (50, 150), (82, 400), (0, 200, 255), 2)
@@ -236,9 +242,7 @@ def do_volume(hand_data, frame):
 
 
 # =============================================================================
-#  BRIGHTNESS
-#  dist(4,20) = thumb tip to PINKY tip
-#  range [30, 300] px → 0 to 100%
+#  BRIGHTNESS  —  dist(thumb=4, pinky=20), range [30,300] → 0-100%
 # =============================================================================
 _bright_bar = 400
 _bright_pct = 50
@@ -264,7 +268,6 @@ def do_brightness(hand_data, frame):
     cv2.line(frame, (tx, ty), (px_, py), (180, 100, 255), 3)
     cv2.circle(frame, (tx, ty),  10, (255, 100,   0), cv2.FILLED)
     cv2.circle(frame, (px_, py), 10, (200,   0, 200), cv2.FILLED)
-
     cv2.putText(frame, "BRIGHTNESS", (10, 90),
                 cv2.FONT_HERSHEY_PLAIN, 2, (180, 100, 255), 2)
     cv2.rectangle(frame, (100, 150), (132, 400), (180, 100, 255), 2)
