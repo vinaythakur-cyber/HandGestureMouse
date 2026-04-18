@@ -1,8 +1,5 @@
 # =============================================================================
 #  actions.py  —  CROSS-PLATFORM  (Windows + macOS + Linux)
-#  FIXED:
-#    - Volume    : dist(4,8) thumb↔index, range [20,250] → full 0-100%
-#    - Brightness: dist(4,20) thumb↔PINKY (was wrongly 4,8), range [30,300]
 # =============================================================================
 
 import cv2
@@ -22,35 +19,45 @@ _vol_obj = None
 
 if OS == "Windows":
     try:
+        # comtypes must be initialised before pycaw on frozen exe
+        import comtypes
+        comtypes.CoInitialize()
+
         from ctypes import cast, POINTER
         from comtypes import CLSCTX_ALL
         from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+
         _devices   = AudioUtilities.GetSpeakers()
-        _interface = _devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+        _interface = _devices.Activate(
+            IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
         _vol_obj   = cast(_interface, POINTER(IAudioEndpointVolume))
         VOL_MIN, VOL_MAX = _vol_obj.GetVolumeRange()[:2]
         VOLUME_ENABLED   = True
-        print("[Niyanta] Volume: Windows Audio API (pycaw)")
+        print("[Niyanta] Volume: Windows Audio API ready")
+        print(f"[Niyanta] Vol range: {VOL_MIN:.1f} dB to {VOL_MAX:.1f} dB")
+
     except Exception as e:
-        print(f"[Niyanta] Volume unavailable: {e}")
+        print(f"[Niyanta] Volume FAILED: {type(e).__name__}: {e}")
+
 elif OS == "Darwin":
     try:
         subprocess.run(["osascript", "-e", "set volume output volume 50"],
                        capture_output=True, check=True)
         VOLUME_ENABLED = True
         VOL_MIN, VOL_MAX = 0, 100
-        print("[Niyanta] Volume: macOS osascript")
+        print("[Niyanta] Volume: macOS osascript ready")
     except Exception as e:
-        print(f"[Niyanta] Volume unavailable: {e}")
-else:
+        print(f"[Niyanta] Volume FAILED: {e}")
+
+else:  # Linux
     try:
         subprocess.run(["amixer", "sset", "Master", "50%"],
                        capture_output=True, check=True)
         VOLUME_ENABLED = True
         VOL_MIN, VOL_MAX = 0, 100
-        print("[Niyanta] Volume: Linux amixer")
+        print("[Niyanta] Volume: Linux amixer ready")
     except Exception as e:
-        print(f"[Niyanta] Volume unavailable: {e}")
+        print(f"[Niyanta] Volume FAILED: {e}")
 
 
 def _set_volume_pct(pct):
@@ -59,11 +66,13 @@ def _set_volume_pct(pct):
         db = np.interp(pct, [0, 100], [VOL_MIN, VOL_MAX])
         _vol_obj.SetMasterVolumeLevel(db, None)
     elif OS == "Darwin":
-        subprocess.Popen(["osascript", "-e", f"set volume output volume {pct}"],
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.Popen(
+            ["osascript", "-e", f"set volume output volume {pct}"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     else:
-        subprocess.Popen(["amixer", "sset", "Master", f"{pct}%"],
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.Popen(
+            ["amixer", "sset", "Master", f"{pct}%"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 # ── Brightness backend ─────────────────────────────────────────────────────────
@@ -73,9 +82,9 @@ try:
     current = sbc.get_brightness()
     if current is not None:
         BRIGHTNESS_ENABLED = True
-        print("[Niyanta] Brightness: screen-brightness-control")
+        print("[Niyanta] Brightness: ready")
 except Exception as e:
-    print(f"[Niyanta] Brightness unavailable: {e}")
+    print(f"[Niyanta] Brightness FAILED: {e}")
 
 
 # ── Cursor state ───────────────────────────────────────────────────────────────
@@ -93,8 +102,10 @@ cursor = CursorState()
 
 def _smooth_move(raw_x, raw_y, frame_w, frame_h):
     sw, sh = pyautogui.size()
-    target_x = np.interp(raw_x, (config.MARGIN, frame_w - config.MARGIN), (0, sw))
-    target_y = np.interp(raw_y, (config.MARGIN, frame_h - config.MARGIN), (0, sh))
+    target_x = np.interp(raw_x,
+                         (config.MARGIN, frame_w - config.MARGIN), (0, sw))
+    target_y = np.interp(raw_y,
+                         (config.MARGIN, frame_h - config.MARGIN), (0, sh))
     cursor.x = int(cursor.x + (target_x - cursor.x) * config.SMOOTH)
     cursor.y = int(cursor.y + (target_y - cursor.y) * config.SMOOTH)
     pyautogui.moveTo(cursor.x, cursor.y)
@@ -190,9 +201,8 @@ def reset_clicks():
 
 # =============================================================================
 #  VOLUME
-#  Gesture : middle finger UP  +  move index & thumb apart/together
-#  Landmark: dist(thumb_tip=4, index_tip=8)
-#  Range   : 20px (touching=0%) → 250px (fully spread=100%)
+#  dist(4,8) = thumb tip to index tip
+#  range [20, 250] px → 0 to 100%
 # =============================================================================
 _vol_bar = 400
 _vol_pct = 0
@@ -204,16 +214,15 @@ def do_volume(hand_data, frame):
                     cv2.FONT_HERSHEY_PLAIN, 1.5, (0, 100, 255), 2)
         return
 
-    dist     = hand_data.dist(4, 8)          # thumb tip ↔ index tip
+    dist     = hand_data.dist(4, 8)
     _vol_pct = np.interp(dist, [20, 250], [0, 100])
     _vol_bar = np.interp(dist, [20, 250], [400, 150])
     _set_volume_pct(_vol_pct)
 
-    tx, ty = hand_data.px(4)
-    ix, iy = hand_data.px(8)
+    tx, ty = hand_data.px(4);  ix, iy = hand_data.px(8)
     cv2.line(frame, (tx, ty), (ix, iy), (0, 200, 255), 3)
     cv2.circle(frame, (tx, ty), 10, (255, 100, 0), cv2.FILLED)
-    cv2.circle(frame, (ix, iy), 10, (0, 0, 255),   cv2.FILLED)
+    cv2.circle(frame, (ix, iy), 10, (0,   0, 255), cv2.FILLED)
 
     cv2.putText(frame, "VOLUME", (10, 90),
                 cv2.FONT_HERSHEY_PLAIN, 2, (0, 200, 255), 2)
@@ -228,11 +237,8 @@ def do_volume(hand_data, frame):
 
 # =============================================================================
 #  BRIGHTNESS
-#  Gesture : thumb + PINKY only (index, middle, ring all folded down)
-#  Landmark: dist(thumb_tip=4, pinky_tip=20)   ← WAS WRONG (was 4,8)
-#  Range   : 30px (touching=0%) → 300px (fully spread=100%)
-#            Thumb-to-pinky spans wider than thumb-to-index,
-#            so 300 is the correct upper bound.
+#  dist(4,20) = thumb tip to PINKY tip
+#  range [30, 300] px → 0 to 100%
 # =============================================================================
 _bright_bar = 400
 _bright_pct = 50
@@ -244,18 +250,17 @@ def do_brightness(hand_data, frame):
                     cv2.FONT_HERSHEY_PLAIN, 1.5, (100, 100, 255), 2)
         return
 
-    dist        = hand_data.dist(4, 20)      # thumb tip ↔ PINKY tip
+    dist        = hand_data.dist(4, 20)
     _bright_pct = int(np.interp(dist, [30, 300], [0, 100]))
     _bright_bar = np.interp(dist, [30, 300], [400, 150])
 
     try:
         import screen_brightness_control as sbc
-        sbc.set_brightness(int(_bright_pct))  # must be int
+        sbc.set_brightness(int(_bright_pct))
     except Exception:
         pass
 
-    tx, ty  = hand_data.px(4)
-    px_, py = hand_data.px(20)
+    tx, ty  = hand_data.px(4);   px_, py = hand_data.px(20)
     cv2.line(frame, (tx, ty), (px_, py), (180, 100, 255), 3)
     cv2.circle(frame, (tx, ty),  10, (255, 100,   0), cv2.FILLED)
     cv2.circle(frame, (px_, py), 10, (200,   0, 200), cv2.FILLED)
@@ -305,7 +310,7 @@ def reset_scroll():
 
 
 # =============================================================================
-#  WIN + TAB  (platform-aware)
+#  WIN + TAB
 # =============================================================================
 class WinSwitchState:
     def __init__(self):
