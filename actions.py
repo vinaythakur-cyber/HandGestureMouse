@@ -345,3 +345,6 @@ def do_win_tab(frame):
 def reset_win_switch():
     _alt_tab_state.hold_count = 0;  _alt_tab_state.fired = False
     _win_tab_state.hold_count = 0;  _win_tab_state.fired = False
+
+def reset_scroll():
+    pass
