@@ -2,61 +2,63 @@ name: Build for Windows, macOS, Linux
 
 on:
   push:
-    branches: [ main ]   # runs every time you push to main branch
+    branches: [ main ]
+  workflow_dispatch:       # lets you trigger a build manually from GitHub UI
 
 jobs:
 
-  # ── BUILD FOR WINDOWS ──────────────────────────────────────────────────────
+  # ── WINDOWS ────────────────────────────────────────────────────────────────
   build-windows:
-    runs-on: windows-latest     # GitHub gives you a real Windows machine
+    runs-on: windows-latest
 
     steps:
-      - name: Download your code
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4          # updated from v3
 
       - name: Setup Python 3.9
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5      # updated from v4
         with:
           python-version: '3.9'
 
-      - name: Install all dependencies
+      - name: Install dependencies
         run: |
-          pip install mediapipe opencv-python pyautogui numpy
+          pip install --upgrade pip
+          pip install mediapipe opencv-python pyautogui numpy Pillow
           pip install pycaw comtypes
           pip install screen-brightness-control
           pip install pyinstaller
 
-      - name: Build Windows .exe
-        run: |
-          pyinstaller --onefile --noconsole ^
-            --collect-all mediapipe ^
-            --collect-all google ^
-            --add-data "hand_landmarker.task;." ^
-            main.py
+      - name: Build Windows exe
+        run: >
+          pyinstaller --onefile --noconsole
+          --collect-all mediapipe
+          --collect-all google
+          --add-data "hand_landmarker.task;."
+          main.py
 
       - name: Upload Windows exe
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4   # FIXED: was v3 (deprecated)
         with:
           name: Windows-EXE
           path: dist/main.exe
 
-  # ── BUILD FOR macOS ────────────────────────────────────────────────────────
+  # ── macOS ──────────────────────────────────────────────────────────────────
   build-macos:
-    runs-on: macos-latest       # GitHub gives you a real Mac machine
+    runs-on: macos-latest
 
     steps:
-      - name: Download your code
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Setup Python 3.9
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.9'
 
-      - name: Install all dependencies
+      - name: Install dependencies
         run: |
-          pip install mediapipe opencv-python pyautogui numpy
-          pip install pyobjc-core pyobjc
+          pip install --upgrade pip
+          pip install mediapipe opencv-python pyautogui numpy Pillow
           pip install screen-brightness-control
           pip install pyinstaller
 
@@ -69,30 +71,33 @@ jobs:
             main.py
 
       - name: Upload macOS binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4   # FIXED: was v3 (deprecated)
         with:
           name: macOS-Binary
           path: dist/main
 
-  # ── BUILD FOR LINUX ────────────────────────────────────────────────────────
+  # ── LINUX ──────────────────────────────────────────────────────────────────
   build-linux:
-    runs-on: ubuntu-latest      # GitHub gives you a real Linux machine
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Download your code
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Setup Python 3.9
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.9'
 
       - name: Install system packages
-        run: sudo apt-get install -y alsa-utils python3-tk
-
-      - name: Install all dependencies
         run: |
-          pip install mediapipe opencv-python pyautogui numpy
+          sudo apt-get update
+          sudo apt-get install -y alsa-utils python3-tk libgl1
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install mediapipe opencv-python pyautogui numpy Pillow
           pip install screen-brightness-control
           pip install pyinstaller
 
@@ -105,7 +110,7 @@ jobs:
             main.py
 
       - name: Upload Linux binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4   # FIXED: was v3 (deprecated)
         with:
           name: Linux-Binary
           path: dist/main
