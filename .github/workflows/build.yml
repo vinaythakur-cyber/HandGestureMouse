@@ -1,0 +1,111 @@
+name: Build for Windows, macOS, Linux
+
+on:
+  push:
+    branches: [ main ]   # runs every time you push to main branch
+
+jobs:
+
+  # ── BUILD FOR WINDOWS ──────────────────────────────────────────────────────
+  build-windows:
+    runs-on: windows-latest     # GitHub gives you a real Windows machine
+
+    steps:
+      - name: Download your code
+        uses: actions/checkout@v3
+
+      - name: Setup Python 3.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install all dependencies
+        run: |
+          pip install mediapipe opencv-python pyautogui numpy
+          pip install pycaw comtypes
+          pip install screen-brightness-control
+          pip install pyinstaller
+
+      - name: Build Windows .exe
+        run: |
+          pyinstaller --onefile --noconsole ^
+            --collect-all mediapipe ^
+            --collect-all google ^
+            --add-data "hand_landmarker.task;." ^
+            main.py
+
+      - name: Upload Windows exe
+        uses: actions/upload-artifact@v3
+        with:
+          name: Windows-EXE
+          path: dist/main.exe
+
+  # ── BUILD FOR macOS ────────────────────────────────────────────────────────
+  build-macos:
+    runs-on: macos-latest       # GitHub gives you a real Mac machine
+
+    steps:
+      - name: Download your code
+        uses: actions/checkout@v3
+
+      - name: Setup Python 3.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install all dependencies
+        run: |
+          pip install mediapipe opencv-python pyautogui numpy
+          pip install pyobjc-core pyobjc
+          pip install screen-brightness-control
+          pip install pyinstaller
+
+      - name: Build macOS binary
+        run: |
+          pyinstaller --onefile --noconsole \
+            --collect-all mediapipe \
+            --collect-all google \
+            --add-data "hand_landmarker.task:." \
+            main.py
+
+      - name: Upload macOS binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: macOS-Binary
+          path: dist/main
+
+  # ── BUILD FOR LINUX ────────────────────────────────────────────────────────
+  build-linux:
+    runs-on: ubuntu-latest      # GitHub gives you a real Linux machine
+
+    steps:
+      - name: Download your code
+        uses: actions/checkout@v3
+
+      - name: Setup Python 3.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install system packages
+        run: sudo apt-get install -y alsa-utils python3-tk
+
+      - name: Install all dependencies
+        run: |
+          pip install mediapipe opencv-python pyautogui numpy
+          pip install screen-brightness-control
+          pip install pyinstaller
+
+      - name: Build Linux binary
+        run: |
+          pyinstaller --onefile \
+            --collect-all mediapipe \
+            --collect-all google \
+            --add-data "hand_landmarker.task:." \
+            main.py
+
+      - name: Upload Linux binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: Linux-Binary
+          path: dist/main
