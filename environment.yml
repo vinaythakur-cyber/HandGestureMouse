@@ -1,0 +1,45 @@
+name: handgesture
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.9.5
+  - pip
+
+  - pip:
+    # ── Works on ALL platforms ──────────────────────────────────────────────
+    - opencv-python>=4.8.0
+    - mediapipe>=0.10.0
+    - numpy>=1.24.0
+    - pyautogui>=0.9.54
+    - Pillow>=9.0.0
+    - screen-brightness-control>=0.22.0   # brightness: Win + macOS + Linux
+
+    # ── Windows ONLY — install manually if on Windows ───────────────────────
+    # Run after conda env activate:
+    #   pip install pycaw comtypes
+    #
+    # pycaw and comtypes are NOT listed here because conda env create
+    # will fail on macOS/Linux trying to install Windows COM libraries.
+    #
+    # The install.py script handles this automatically.
+
+# ══════════════════════════════════════════════════════
+# SETUP INSTRUCTIONS
+# ══════════════════════════════════════════════════════
+#
+# Option A — Conda (recommended):
+#   conda env create -f environment.yml
+#   conda activate handgesture
+#   python install.py        ← handles Windows extras automatically
+#   python main.py
+#
+# Option B — pip only (no Conda):
+#   python -m venv venv
+#   source venv/bin/activate     (Linux/macOS)
+#   venv\Scripts\activate        (Windows)
+#   python install.py            ← installs everything for your OS
+#   python main.py
+#
+# ══════════════════════════════════════════════════════
