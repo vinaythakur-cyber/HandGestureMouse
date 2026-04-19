@@ -1,4 +1,4 @@
-name: Build Niyanta — Windows, macOS, Linux
+name: Build Niyanta
 
 on:
   push:
@@ -14,10 +14,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
-      - name: Install deps
+      - name: Install
         run: pip install mediapipe opencv-python pyautogui numpy Pillow pycaw comtypes pywin32 screen-brightness-control pyinstaller
-      - name: Build Niyanta.exe
-        run: pyinstaller --onefile --noconsole --name "Niyanta" --collect-all mediapipe --collect-all comtypes --hidden-import pycaw --hidden-import pycaw.pycaw --hidden-import comtypes --hidden-import comtypes.client --hidden-import comtypes.server --hidden-import comtypes.GUID --hidden-import comtypes._generate --hidden-import win32api --hidden-import win32con --add-data "hand_landmarker.task;." main.py
+      - name: Build
+        run: pyinstaller --onefile --noconsole --name "Niyanta" --icon "icon.ico" --collect-all mediapipe --collect-all comtypes --hidden-import pycaw --hidden-import pycaw.pycaw --hidden-import comtypes --hidden-import comtypes.client --hidden-import comtypes.server --hidden-import comtypes.GUID --hidden-import comtypes._generate --hidden-import win32api --hidden-import win32con --add-data "hand_landmarker.task;." main.py
       - uses: actions/upload-artifact@v4
         with:
           name: Windows-Niyanta
@@ -30,9 +30,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
-      - name: Install deps
+      - name: Install
         run: pip install mediapipe opencv-python pyautogui numpy Pillow screen-brightness-control pyinstaller
-      - name: Build Niyanta
+      - name: Build
         run: pyinstaller --onefile --noconsole --name "Niyanta" --collect-all mediapipe --add-data "hand_landmarker.task:." main.py
       - uses: actions/upload-artifact@v4
         with:
@@ -48,9 +48,9 @@ jobs:
           python-version: '3.9'
       - name: System packages
         run: sudo apt-get update && sudo apt-get install -y alsa-utils python3-tk libgl1
-      - name: Install deps
+      - name: Install
         run: pip install mediapipe opencv-python pyautogui numpy Pillow screen-brightness-control pyinstaller
-      - name: Build Niyanta
+      - name: Build
         run: pyinstaller --onefile --name "Niyanta" --collect-all mediapipe --add-data "hand_landmarker.task:." main.py
       - uses: actions/upload-artifact@v4
         with:
